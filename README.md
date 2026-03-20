@@ -59,7 +59,7 @@ cd chatgpt-explorer
 open index.html
 ```
 
-Everything is in `index.html`. Topics are defined in the `TOPICS` object in the `<script>` block — edit the keyword lists there to customize classification for your own data.
+Everything is in `index.html`. Topics are classified using TF-IDF scoring against the `TOPICS` object in the `<script>` block, which follows the [IAB Content Taxonomy 3.0](https://github.com/InteractiveAdvertisingBureau/Taxonomies) (25 categories). Classification uses conversation titles (weighted 3×) plus the first five user messages for context — so even vague titles get classified from content. You can edit the keyword lists in `TOPICS` to add or adjust categories, though note that individual keyword changes can have unintended side effects across the corpus.
 
 ---
 
@@ -136,7 +136,7 @@ The app performs basic structural checks on uploaded JSON (`c && c.create_time`)
 
 ### Scope of this assessment
 
-This review covers the `index.html` file at the time of initial release. It does not cover:
+This review covers the `index.html` file as of v2 (2026-03-20). It does not cover:
 - Forks or modifications made after cloning
 - The security of ChatGPT's export format itself
 - Browser-level vulnerabilities or extensions
