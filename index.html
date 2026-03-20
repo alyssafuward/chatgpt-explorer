@@ -538,7 +538,7 @@
     You'll receive a <code>.zip</code> file — you can upload it directly, or extract it and upload the <code>conversations.json</code> file(s) inside.<br>
     <strong>Your data never leaves your browser.</strong>
   </p>
-  <p style="font-size:.72rem;color:#bbb;margin-top:1.5rem;">v2 · 2026-03-20</p>
+  <p style="font-size:.72rem;color:#bbb;margin-top:1.5rem;">v2 · 2026-03-20 12:47</p>
 </div>
 
 <!-- ── Dashboard ──────────────────────────────────────────────────────────── -->
@@ -650,7 +650,7 @@
 <footer>
   <span>Built by <a href="https://substack.com/@alyssafuward" target="_blank" rel="noopener">Alyssa Fu Ward</a></span>
   <span class="footer-divider">·</span>
-  <span>v2 · 2026-03-20</span>
+  <span>v2 · 2026-03-20 12:47</span>
 </footer>
 
 <!-- ── Conversation drawer ────────────────────────────────────────────────── -->
@@ -957,10 +957,10 @@ let activeTimelineTopics = new Set();
 let topicColorMap = {};
 
 async function parseFiles(files) {
-  const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
+  const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB
   for (const file of files) {
     if (file.size > MAX_FILE_SIZE) {
-      alert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(0)} MB). Maximum is 500 MB.`);
+      alert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(0)} MB). Maximum is 2 GB.`);
       return;
     }
   }
@@ -1522,7 +1522,17 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   [monthlyChart, topicBarChart, timelineChart].forEach(c => c && c.destroy());
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('upload-screen').style.display = 'flex';
-  fileInput.value = '';
+  document.getElementById('drop-zone').innerHTML = `
+    <div class="icon">💬</div>
+    <p>Drag & drop your ChatGPT export here<br>or <strong id="browse-link">browse to select</strong></p>
+    <p style="font-size:.82rem;color:#aaa;margin-top:.5rem;">Accepts the <strong>.zip</strong> export directly, or individual <strong>.json</strong> files</p>
+    <input type="file" id="file-input" accept=".zip,.json" multiple />
+  `;
+  document.getElementById('browse-link').addEventListener('click', () => document.getElementById('file-input').click());
+  document.getElementById('file-input').addEventListener('change', () => {
+    const fi = document.getElementById('file-input');
+    if (fi.files.length) parseFiles(fi.files);
+  });
   document.getElementById('search-input').value = '';
 });
 </script>
