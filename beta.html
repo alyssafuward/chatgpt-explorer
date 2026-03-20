@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatGPT Conversation Explorer</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+          integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+          crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #FAFAF8;
+      --surface:   #FFFFFF;
+      --border:    #E8E4DF;
+      --accent:    #C05F3C;
+      --accent2:   #E8956D;
+      --accent3:   #F5C9A0;
+      --text:      #2D2D2D;
+      --muted:     #777777;
+      --radius:    10px;
+      --shadow:    0 2px 12px rgba(0,0,0,0.07);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Upload screen ─────────────────────────────── */
+
+    #upload-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    #upload-screen h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+      color: var(--text);
+    }
+
+    #upload-screen .byline {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-bottom: 1.2rem;
+    }
+
+    #upload-screen .byline a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    #upload-screen .byline a:hover { text-decoration: underline; }
+
+    #upload-screen p.subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 480px;
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+
+    #drop-zone {
+      width: 100%;
+      max-width: 520px;
+      border: 2px dashed var(--accent2);
+      border-radius: var(--radius);
+      padding: 3rem 2rem;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      background: var(--surface);
+    }
+
+    #drop-zone:hover, #drop-zone.drag-over {
+      background: #FEF4EE;
+      border-color: var(--accent);
+    }
+
+    #drop-zone .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+
+    #drop-zone p {
+      color: var(--muted);
+      font-size: .95rem;
+      line-height: 1.6;
+    }
+
+    #drop-zone strong { color: var(--accent); cursor: pointer; }
+    #drop-zone strong:hover { text-decoration: underline; }
+    #file-input { display: none; }
+
+    .hint {
+      margin-top: 1.5rem;
+      font-size: .82rem;
+      color: #AAAAAA;
+      max-width: 480px;
+      line-height: 1.6;
+    }
+
+    /* ── Dashboard ─────────────────────────────────── */
+
+    #dashboard { display: none; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: .9rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    header span { font-size: .85rem; color: var(--muted); }
+
+    #reset-btn {
+      font-size: .8rem;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .3rem .8rem;
+      cursor: pointer;
+    }
+    #reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Stats bar ─────────────────────────────────── */
+
+    #stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      padding: 1.5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.3rem;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-card .label {
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: .3rem;
+    }
+
+    .stat-card .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1.2;
+    }
+
+    .stat-card .sub {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: .2rem;
+    }
+
+    /* ── Tabs ──────────────────────────────────────── */
+
+    #tab-nav {
+      display: flex;
+      gap: .25rem;
+      padding: 0 2rem;
+      max-width: 1100px;
+      margin: 0 auto .25rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .tab-btn {
+      padding: .65rem 1.2rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      font-size: .9rem;
+      color: var(--muted);
+      font-weight: 500;
+      transition: color .15s, border-color .15s;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-panel { display: none; padding: 1.5rem 2rem 3rem; max-width: 1100px; margin: 0 auto; }
+    .tab-panel.active { display: block; }
+
+    /* ── Cards / sections ──────────────────────────── */
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      color: var(--text);
+    }
+
+    .chart-wrap { position: relative; height: 320px; }
+
+    /* ── Topic grid ────────────────────────────────── */
+
+    #topic-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: .75rem;
+      margin-top: .5rem;
+    }
+
+    .topic-chip {
+      background: #FEF4EE;
+      border: 1px solid var(--accent3);
+      border-radius: 8px;
+      padding: .7rem 1rem;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+
+    .topic-chip:hover, .topic-chip.selected { background: #FDEEE4; border-color: var(--accent); }
+
+    .topic-chip .t-name { font-size: .9rem; font-weight: 600; color: var(--text); }
+    .topic-chip .t-count { font-size: .8rem; color: var(--muted); margin-top: .1rem; }
+
+    /* ── Conversation list ─────────────────────────── */
+
+    #convo-list { margin-top: 1rem; }
+
+    .convo-item {
+      padding: .6rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: .75rem;
+    }
+
+    .convo-item:last-child { border-bottom: none; }
+
+    .convo-title { font-size: .9rem; color: var(--text); }
+    .convo-date { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+
+    #convo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: .5rem;
+    }
+
+    #convo-header h2 { font-size: 1rem; font-weight: 600; }
+    #convo-back {
+      font-size: .82rem;
+      color: var(--accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+    #convo-back:hover { text-decoration: underline; }
+
+    /* ── Search ────────────────────────────────────── */
+
+    #search-input {
+      width: 100%;
+      padding: .85rem 1.1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      margin-bottom: 1.2rem;
+      transition: border-color .15s;
+    }
+
+    #search-input:focus { border-color: var(--accent2); }
+
+    #search-results { }
+
+    .result-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      margin-bottom: .75rem;
+      box-shadow: var(--shadow);
+    }
+
+    .result-item .r-title { font-size: .95rem; font-weight: 600; margin-bottom: .3rem; }
+    .result-item .r-meta { font-size: .78rem; color: var(--muted); margin-bottom: .5rem; }
+    .result-item .r-snippet {
+      font-size: .85rem;
+      color: #555;
+      line-height: 1.6;
+      border-left: 3px solid var(--accent3);
+      padding-left: .75rem;
+    }
+
+    .highlight { background: #FDEBC0; border-radius: 2px; padding: 0 2px; }
+
+    #search-count { font-size: .85rem; color: var(--muted); margin-bottom: 1rem; }
+
+    /* ── Timeline select ───────────────────────────── */
+
+    #timeline-controls { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+
+    .tl-chip {
+      padding: .35rem .8rem;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-size: .82rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all .15s;
+    }
+
+    .tl-chip.active { border-color: var(--accent); color: var(--accent); background: #FEF4EE; font-weight: 600; }
+
+    /* ── Footer ────────────────────────────────────── */
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: .8rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+
+    footer a { color: var(--muted); text-decoration: underline; }
+    footer a:hover { color: var(--accent); }
+    .footer-divider { margin: 0 .6rem; }
+
+    /* ── Intro & copy blocks ───────────────────────── */
+
+    .intro-block {
+      padding: 1.5rem 0 1rem;
+    }
+
+    .intro-block h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: .5rem;
+    }
+
+    .intro-block p {
+      font-size: .93rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 720px;
+    }
+
+    .card-desc {
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1.1rem;
+    }
+
+    .disclaimer {
+      font-size: .78rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: .75rem;
+    }
+
+    /* ── Conversation drawer ───────────────────────── */
+
+    #drawer-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 200;
+      backdrop-filter: blur(2px);
+    }
+
+    #drawer-overlay.open { display: block; }
+
+    #drawer {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: min(600px, 100vw);
+      background: var(--bg);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      z-index: 201;
+      transform: translateX(100%);
+      transition: transform .25s ease;
+    }
+
+    #drawer-overlay.open #drawer { transform: translateX(0); }
+
+    #drawer-header {
+      padding: 1.2rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    #drawer-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--muted);
+      line-height: 1;
+      margin-left: .5rem;
+    }
+    #drawer-close:hover { color: var(--text); }
+
+    #drawer-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: .3rem;
+      padding-right: 2rem;
+    }
+
+    #drawer-meta { font-size: .78rem; color: var(--muted); }
+
+    #drawer-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .msg {
+      max-width: 88%;
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;
+    }
+
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.assistant { align-self: flex-start; align-items: flex-start; }
+
+    .msg-role {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      padding: 0 .4rem;
+    }
+
+    .msg-bubble {
+      padding: .7rem 1rem;
+      border-radius: 14px;
+      font-size: .88rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.user .msg-bubble {
+      background: var(--accent);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.assistant .msg-bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .convo-item { cursor: pointer; }
+    .convo-item:hover .convo-title { color: var(--accent); text-decoration: underline; }
+
+    .result-item { cursor: pointer; }
+    .result-item:hover { border-color: var(--accent2); }
+
+    /* ── Responsive ────────────────────────────────── */
+
+    @media (max-width: 700px) {
+      #stats-bar { grid-template-columns: 1fr 1fr; }
+      #tab-nav { overflow-x: auto; }
+      .tab-btn { white-space: nowrap; }
+    }
+
+    @media (max-width: 480px) {
+      #stats-bar { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Upload screen ──────────────────────────────────────────────────────── -->
+
+<div id="upload-screen">
+  <h1>ChatGPT Conversation Explorer</h1>
+  <p class="byline">by <a href="https://substack.com/@alyssafuward" target="_blank" rel="noopener">Alyssa Fu Ward</a></p>
+  <p class="subtitle">Upload your ChatGPT export and explore your conversations — what you talked about, when, and how your topics shifted over time.</p>
+
+  <div id="drop-zone">
+    <div class="icon">💬</div>
+    <p>Drag & drop your ChatGPT JSON files here<br>or <strong id="browse-link">browse to select</strong></p>
+    <input type="file" id="file-input" accept=".json" multiple />
+  </div>
+
+  <p class="hint">
+    To export: ChatGPT → Settings → Data Controls → Export Data.<br>
+    You'll receive a zip — extract it, then upload the <code>conversations.json</code> file<br>
+    (or multiple <code>conversations-000.json</code> files if you have a large export).<br>
+    <strong>Your data never leaves your browser.</strong>
+  </p>
+</div>
+
+<!-- ── Dashboard ──────────────────────────────────────────────────────────── -->
+
+<div id="dashboard">
+  <header>
+    <h1>ChatGPT Explorer</h1>
+    <span id="header-range"></span>
+    <button id="reset-btn">← Load new files</button>
+  </header>
+
+  <div class="intro-block" style="padding-left:2rem;padding-right:2rem;max-width:1100px;margin:0 auto;">
+    <h2>Welcome to your ChatGPT Conversation Explorer</h2>
+    <p>Created by <a href="https://substack.com/@alyssafuward" target="_blank" rel="noopener">Alyssa Fu Ward</a></p>
+    <p>This tool gives you a bird's-eye view of everything you've talked about with ChatGPT — organized by topic, searchable by keyword, and mapped across time. Use the tabs above to explore.</p>
+    <p class="disclaimer"><em>Topics are estimated using keyword matching and may not always be accurate. Some conversations may land in the wrong category or fall into "Other." Use this as a rough guide, not a precise analysis.</em></p>
+  </div>
+
+  <div id="stats-bar">
+    <div class="stat-card">
+      <div class="label">Total Conversations</div>
+      <div class="value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Date Range</div>
+      <div class="value" id="stat-range" style="font-size:1rem">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Peak Month</div>
+      <div class="value" id="stat-peak">—</div>
+      <div class="sub" id="stat-peak-count"></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Top Topic</div>
+      <div class="value" id="stat-topic" style="font-size:1rem">—</div>
+    </div>
+  </div>
+
+  <div id="tab-nav">
+    <button class="tab-btn active" data-tab="overview">📊 Overview</button>
+    <button class="tab-btn" data-tab="topics">🗺️ Topics</button>
+    <button class="tab-btn" data-tab="search">🔍 Search</button>
+    <button class="tab-btn" data-tab="timeline">📅 Timeline</button>
+  </div>
+
+  <!-- Overview -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="card">
+      <h2>Conversations per Month</h2>
+      <p class="card-desc">How many conversations you started each month. Peaks often reflect periods of focused work or exploration.</p>
+      <div class="chart-wrap"><canvas id="monthly-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Conversations by Topic</h2>
+      <p class="card-desc">Your conversations grouped into broad themes. Topics are detected automatically from conversation titles. Head to the <strong>Topics</strong> tab to browse individual conversations within each category.</p>
+      <div class="chart-wrap"><canvas id="topic-bar-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Topics -->
+  <div class="tab-panel" id="tab-topics">
+    <div class="intro-block">
+      <h2>Browse by Topic</h2>
+      <p>Your conversations have been automatically grouped into topics based on their titles. Click any topic card to see every conversation in that category — then click a conversation title to read the full exchange.</p>
+    </div>
+    <div class="card" id="topic-grid-card">
+      <h2>All Topics</h2>
+      <p class="card-desc">Sorted by number of conversations. Click a topic to explore it.</p>
+      <div id="topic-grid"></div>
+    </div>
+    <div class="card" id="convo-list-card" style="display:none">
+      <div id="convo-header">
+        <h2 id="convo-list-title"></h2>
+        <button id="convo-back">← All topics</button>
+      </div>
+      <p class="card-desc" style="margin-bottom:.75rem">Sorted most recent first. Click any conversation to read the full thread.</p>
+      <div id="convo-list"></div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="tab-panel" id="tab-search">
+    <div class="intro-block">
+      <h2>Search Your Conversations</h2>
+      <p>Search across every conversation title and message — all processing happens in your browser, so nothing is sent anywhere. Type a keyword, a person's name, a project, a question you asked — anything you remember.</p>
+    </div>
+    <input type="search" id="search-input" placeholder="Try a keyword, topic, or phrase…" autocomplete="off" />
+    <div id="search-count"></div>
+    <div id="search-results"></div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="tab-panel" id="tab-timeline">
+    <div class="intro-block">
+      <h2>Topic Activity Over Time</h2>
+      <p>See how your focus shifted month by month. Toggle topics on and off using the chips below the chart to compare specific themes. The emoji on each data point matches the topic — hover for the exact count.</p>
+    </div>
+    <div class="card">
+      <h2>Monthly Breakdown by Topic</h2>
+      <p class="card-desc">Toggle topics below to focus the view. Showing your top topics by default.</p>
+      <div id="timeline-controls"></div>
+      <div class="chart-wrap" style="height:380px"><canvas id="timeline-chart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+
+<footer>
+  <span>Built by <a href="https://substack.com/@alyssafuward" target="_blank" rel="noopener">Alyssa Fu Ward</a></span>
+</footer>
+
+<!-- ── Conversation drawer ────────────────────────────────────────────────── -->
+
+<div id="drawer-overlay">
+  <div id="drawer">
+    <div id="drawer-header">
+      <button id="drawer-close">✕</button>
+      <div id="drawer-title"></div>
+      <div id="drawer-meta"></div>
+    </div>
+    <div id="drawer-messages"></div>
+  </div>
+</div>
+
+<script>
+// ── Topic taxonomy (IAB Content Taxonomy 3.0, Tier 1 + Tier 2 keywords) ───────
+// Source: https://github.com/InteractiveAdvertisingBureau/Taxonomies
+
+const TOPICS = {
+  '🎭 Arts & Entertainment': [
+    'movie', 'movies', 'film', 'films', 'cinema', 'tv', 'television', 'show',
+    'series', 'episode', 'streaming', 'netflix', 'hulu', 'disney', 'hbo',
+    'music', 'song', 'songs', 'album', 'artist', 'band', 'concert', 'lyrics',
+    'playlist', 'spotify', 'podcast', 'actor', 'actress', 'director', 'plot',
+    'theater', 'theatre', 'comedy', 'drama', 'documentary', 'animation',
+    'anime', 'celebrity', 'entertainment', 'review', 'recommend',
+  ],
+  '🚗 Automotive': [
+    'car', 'cars', 'truck', 'vehicle', 'vehicles', 'driving', 'driver',
+    'automotive', 'mechanic', 'tire', 'tires', 'lease', 'dealership',
+    'electric vehicle', 'ev', 'suv', 'sedan', 'motorcycle', 'mileage',
+    'fuel', 'transmission', 'oil change', 'car repair', 'auto repair',
+    'car insurance', 'car engine', 'brake', 'brakes', 'exhaust',
+    'windshield', 'parking', 'speeding',
+  ],
+  '📖 Books & Literature': [
+    'book', 'books', 'novel', 'novels', 'read', 'reading', 'fiction',
+    'nonfiction', 'author', 'chapter', 'plot', 'character', 'memoir',
+    'biography', 'autobiography', 'poetry', 'poem', 'library', 'kindle',
+    'audiobook', 'literature', 'comic', 'graphic novel', 'publisher',
+    'manuscript', 'writing a book', 'nanowrimo',
+  ],
+  '💼 Business & Finance': [
+    'business', 'company', 'startup', 'entrepreneur', 'marketing', 'sales',
+    'revenue', 'profit', 'loss', 'strategy', 'management', 'investor',
+    'pitch', 'client', 'customers', 'market', 'brand', 'product', 'launch',
+    'growth', 'b2b', 'b2c', 'saas', 'consulting', 'agency', 'pricing',
+    'invoice', 'contract', 'fee', 'package', 'coach', 'coaching',
+    'freelance', 'funnel', 'lead', 'conversion', 'economy', 'industry',
+  ],
+  '📋 Careers': [
+    'job', 'jobs', 'career', 'careers', 'resume', 'cv', 'interview',
+    'salary', 'promotion', 'manager', 'workplace', 'hiring', 'layoff',
+    'remote', 'networking', 'linkedin', 'cover letter', 'application',
+    'skills', 'role', 'onboarding', 'performance review', 'apprenticeship',
+    'vocational', 'job search', 'recruiter', 'headhunter', 'offer letter',
+  ],
+  '🎓 Education': [
+    'learn', 'learning', 'study', 'studying', 'course', 'school', 'college',
+    'university', 'degree', 'exam', 'homework', 'tutor', 'lesson', 'student',
+    'teacher', 'grade', 'test', 'quiz', 'academic', 'thesis', 'dissertation',
+    'phd', 'masters', 'homeschool', 'online course', 'certification',
+    'language learning', 'tutoring', 'curriculum', 'lecture',
+  ],
+  '👪 Family & Relationships': [
+    'family', 'parent', 'parenting', 'child', 'children', 'kids', 'baby',
+    'toddler', 'teenager', 'teen', 'marriage', 'wedding', 'divorce', 'dating',
+    'relationship', 'partner', 'spouse', 'husband', 'wife', 'mother', 'father',
+    'mom', 'dad', 'grandparent', 'sibling', 'custody', 'pregnancy', 'newborn',
+    'eldercare', 'single', 'breakup', 'bereavement', 'grief', 'adoption',
+  ],
+  '🍽️ Food & Drink': [
+    'recipe', 'cook', 'cooking', 'food', 'eat', 'eating', 'dinner', 'lunch',
+    'breakfast', 'meal', 'ingredient', 'kitchen', 'bake', 'baking',
+    'restaurant', 'cuisine', 'vegan', 'vegetarian', 'coffee', 'wine',
+    'cocktail', 'grocery', 'barbecue', 'grill', 'dessert', 'snack',
+    'nutrition', 'diet', 'calories', 'world cuisine', 'allergy',
+  ],
+  '💪 Healthy Living': [
+    'health', 'fitness', 'exercise', 'workout', 'gym', 'yoga', 'meditation',
+    'sleep', 'stress', 'anxiety', 'mental health', 'therapy', 'wellness',
+    'burnout', 'recovery', 'weight', 'running', 'walking', 'stretching',
+    'mindfulness', 'breathwork', 'nutrition', 'supplements', 'hydration',
+    'chronic pain', 'energy', 'fatigue', 'senior health', 'women\'s health',
+  ],
+  '🎨 Hobbies & Interests': [
+    'hobby', 'hobbies', 'craft', 'crafts', 'knit', 'knitting', 'crochet',
+    'sew', 'sewing', 'paint', 'painting', 'draw', 'drawing', 'sketch',
+    'photography', 'puzzle', 'puzzles', 'board game', 'chess', 'diy',
+    'woodwork', 'pottery', 'ceramics', 'collecting', 'birdwatching',
+    'beekeeping', 'genealogy', 'ancestry', 'magic', 'model', 'improv',
+    'sketchnote', 'claymation', 'animation', 'fresco',
+  ],
+  '🏡 Home & Garden': [
+    'home', 'house', 'apartment', 'garden', 'gardening', 'plant', 'plants',
+    'grow', 'growing', 'seed', 'seeds', 'seedling', 'seedlings', 'tomato',
+    'vegetable', 'vegetables', 'flower', 'lawn', 'soil', 'compost',
+    'raised bed', 'raised beds', 'herb', 'herbs', 'mulch', 'watering',
+    'planting', 'harvest', 'frost', 'weed', 'weeds', 'zucchini', 'garlic',
+    'lettuce', 'basil', 'interior', 'decor', 'furniture', 'renovation',
+    'remodel', 'organize', 'clean', 'landscaping', 'smart home', 'appliance',
+    'aphid', 'aphids', 'pest', 'pests', 'fungal', 'blight', 'pruning',
+    'companion planting', 'succession planting', 'organic',
+  ],
+  '🏥 Medical Health': [
+    'doctor', 'medical', 'symptom', 'symptoms', 'diagnosis', 'medication',
+    'prescription', 'surgery', 'hospital', 'disease', 'condition', 'vaccine',
+    'treatment', 'chronic', 'pain', 'injury', 'physical therapy', 'specialist',
+    'health insurance', 'appointment', 'test results', 'blood work',
+  ],
+  '💰 Personal Finance': [
+    'money', 'budget', 'budgeting', 'saving', 'savings', 'invest', 'investing',
+    'debt', 'loan', 'credit', 'tax', 'taxes', 'retirement', '401k', 'ira',
+    'bank', 'banking', 'financial', 'afford', 'income', 'expense', 'net worth',
+    'mortgage', 'rent', 'frugal', 'spending', 'insurance', 'emergency fund',
+    'financial planning', 'stock', 'index fund', 'compound interest',
+  ],
+  '🐾 Pets': [
+    'pet', 'pets', 'dog', 'dogs', 'cat', 'cats', 'puppy', 'kitten', 'vet',
+    'veterinary', 'animal', 'fish', 'bird', 'rabbit', 'hamster', 'reptile',
+    'training', 'breed', 'adopt', 'adoption', 'paw', 'fur', 'leash', 'collar',
+    'feeding', 'grooming',
+  ],
+  '🏛️ Politics & Society': [
+    'politics', 'political', 'government', 'election', 'vote', 'voting',
+    'policy', 'law', 'legal', 'rights', 'social', 'society', 'democracy',
+    'republican', 'democrat', 'conservative', 'liberal', 'immigration',
+    'healthcare policy', 'climate policy', 'news', 'media', 'protest',
+    'justice', 'equality', 'civil', 'legislation', 'congress', 'senate',
+  ],
+  '🔬 Science & Nature': [
+    'science', 'scientific', 'biology', 'chemistry', 'physics', 'math',
+    'mathematics', 'space', 'astronomy', 'planet', 'evolution', 'genetics',
+    'environment', 'climate', 'nature', 'species', 'experiment', 'data',
+    'statistics', 'geography', 'geology', 'weather', 'ecology', 'ocean',
+    'research', 'study', 'findings', 'theory',
+  ],
+  '🛒 Shopping': [
+    'buy', 'buying', 'purchase', 'shop', 'shopping', 'product', 'recommend',
+    'price', 'discount', 'amazon', 'online', 'store', 'gift', 'comparison',
+    'worth it', 'deal', 'sale', 'coupon', 'review', 'unboxing', 'returns',
+  ],
+  '⚽ Sports': [
+    'sport', 'sports', 'football', 'basketball', 'baseball', 'soccer',
+    'tennis', 'golf', 'running', 'marathon', 'swim', 'swimming', 'cycling',
+    'hiking', 'athlete', 'team', 'league', 'championship', 'training',
+    'sports coach', 'season', 'playoffs', 'fantasy sports', 'cricket', 'rugby',
+  ],
+  '👗 Style & Fashion': [
+    'fashion', 'style', 'clothing', 'clothes', 'outfit', 'wear', 'dress',
+    'shirt', 'pants', 'shoes', 'accessories', 'beauty', 'makeup', 'skincare',
+    'hair', 'haircut', 'wardrobe', 'trend', 'designer', 'streetwear',
+    'personal care', 'grooming', 'nails', 'perfume',
+  ],
+  '💻 Technology & Computing': [
+    'tech', 'technology', 'computer', 'software', 'code', 'coding',
+    'programming', 'python', 'javascript', 'typescript', 'html', 'css',
+    'api', 'database', 'github', 'bug', 'error', 'function', 'script',
+    'git', 'react', 'node', 'sql', 'debug', 'deploy', 'repo', 'docker',
+    'server', 'frontend', 'backend', 'app', 'apps', 'website', 'building',
+    'side project', 'startup tech', 'cloud', 'aws', 'azure', 'supabase',
+    'ai', 'artificial intelligence', 'chatgpt', 'gpt', 'claude', 'llm',
+    'prompt', 'automation', 'machine learning', 'model', 'openai',
+    'phone', 'iphone', 'android', 'laptop', 'mac', 'windows', 'security',
+    'privacy', 'data', 'devops', 'pwa', 'native',
+  ],
+  '✈️ Travel': [
+    'travel', 'trip', 'vacation', 'holiday', 'flight', 'hotel', 'airbnb',
+    'destination', 'itinerary', 'passport', 'visa', 'abroad', 'international',
+    'road trip', 'backpack', 'resort', 'cruise', 'tourist', 'sightseeing',
+    'packing', 'luggage', 'layover', 'hostel',
+  ],
+  '🎮 Video Gaming': [
+    'game', 'games', 'gaming', 'video game', 'playstation', 'xbox',
+    'nintendo', 'steam', 'esports', 'minecraft', 'fortnite', 'rpg', 'fps',
+    'strategy game', 'multiplayer', 'character', 'quest', 'level', 'mmo',
+    'indie game', 'mobile game', 'twitch', 'streamer',
+  ],
+  '✍️ Writing & Content': [
+    'write', 'writing', 'essay', 'article', 'blog', 'post', 'newsletter',
+    'substack', 'content', 'draft', 'edit', 'proofread', 'copy', 'headline',
+    'caption', 'pitch', 'proposal', 'narrative', 'grammar', 'publish',
+    'author', 'journalist', 'social media', 'linkedin post', 'twitter',
+    'script', 'transcript', 'cover letter',
+  ],
+  '🪞 Personal Reflection': [
+    'fear', 'vulnerability', 'identity', 'becoming', 'self', 'worth',
+    'doubt', 'confidence', 'imposter', 'visibility', 'courage', 'shame',
+    'meaning', 'purpose', 'values', 'authenticity', 'growth', 'mindset',
+    'feeling', 'feelings', 'emotion', 'transition', 'change', 'loss', 'joy',
+    'gratitude', 'loneliness', 'belonging', 'enough', 'permission', 'voice',
+    'pattern', 'healing', 'boundaries', 'truth', 'presence', 'awareness',
+    'therapy', 'self-worth', 'self-doubt', 'inner critic',
+  ],
+  '🧠 Ideas & Planning': [
+    'idea', 'ideas', 'plan', 'planning', 'brainstorm', 'concept', 'vision',
+    'goal', 'goals', 'decision', 'focus', 'project', 'roadmap', 'prioritize',
+    'habit', 'routine', 'productivity', 'system', 'process', 'think',
+    'reflect', 'strategy', 'framework', 'organize', 'schedule',
+  ],
+};
+
+// ── TF-IDF classifier ─────────────────────────────────────────────────────────
+
+const STOP_WORDS = new Set([
+  'a','an','the','and','or','but','in','on','at','to','for','of','with',
+  'by','from','up','about','into','is','are','was','were','be','been',
+  'being','have','has','had','do','does','did','will','would','could',
+  'should','may','might','can','this','that','these','those','i','me',
+  'my','we','our','you','your','he','his','she','her','it','its','they',
+  'their','all','each','every','both','more','most','other','some','no',
+  'not','only','so','than','too','very','just','get','make','use','used',
+  'new','help','using','also','way','need','want',
+]);
+
+function tokenize(text) {
+  return text.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+}
+
+let idf = {};
+
+// Build a richer document: title (3x weight) + first 5 user messages (300 chars each)
+function buildDocText(conv) {
+  const title = conv.title + ' ' + conv.title + ' ' + conv.title;
+  const msgs = (conv.messages || [])
+    .filter(m => m.role === 'user')
+    .slice(0, 5)
+    .map(m => m.text.slice(0, 300))
+    .join(' ');
+  return title + ' ' + msgs;
+}
+
+function buildIDF(conversations) {
+  const N = conversations.length;
+  const df = {};
+  for (const c of conversations) {
+    const words = new Set(tokenize(buildDocText(c)));
+    for (const w of words) df[w] = (df[w] || 0) + 1;
+  }
+  for (const [w, count] of Object.entries(df)) {
+    idf[w] = Math.log((N + 1) / (count + 1)) + 1;
+  }
+}
+
+function tfidfVector(text) {
+  const tokens = tokenize(text);
+  const tf = {};
+  for (const t of tokens) tf[t] = (tf[t] || 0) + 1;
+  const len = tokens.length || 1;
+  const vec = {};
+  for (const [w, count] of Object.entries(tf)) {
+    vec[w] = (count / len) * (idf[w] || 1);
+  }
+  return vec;
+}
+
+function scoreTopics(vec, rawText) {
+  let best = '💬 Other', bestScore = 0;
+  for (const [topic, keywords] of Object.entries(TOPICS)) {
+    let score = 0;
+    for (const kw of keywords) {
+      if (kw.includes(' ')) {
+        if (rawText.toLowerCase().includes(kw)) score += 0.5;
+      } else if (vec[kw]) {
+        score += vec[kw];
+      }
+    }
+    if (score > bestScore) { bestScore = score; best = topic; }
+  }
+  return { topic: best, score: bestScore };
+}
+
+function classifyConversation(conv) {
+  const docText = buildDocText(conv);
+  const vec = tfidfVector(docText);
+  return scoreTopics(vec, docText).topic;
+}
+
+// ── Parse conversations ──────────────────────────────────────────────────────
+
+let allConversations = [];
+let monthlyChart, topicBarChart, timelineChart;
+let activeTimelineTopics = new Set();
+let topicColorMap = {};
+
+function parseFiles(files) {
+  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+  const readers = [];
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE) {
+      alert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(0)} MB). Maximum is 100 MB.`);
+      return;
+    }
+    readers.push(new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try { resolve(JSON.parse(e.target.result)); }
+        catch { reject(new Error('Could not parse ' + file.name + ' — make sure it\'s a valid ChatGPT export JSON.')); }
+      };
+      reader.onerror = () => reject(new Error('Could not read ' + file.name));
+      reader.readAsText(file);
+    }));
+  }
+
+  Promise.all(readers).then(results => {
+    const raw = results.flat();
+
+    // Pass 1: parse structure, no classification yet
+    const parsed = raw
+      .filter(c => c && c.create_time)
+      .map(c => {
+        // Traverse tree from current_node → root, then reverse for chronological order
+        const mapping = c.mapping || {};
+        const orderedNodes = [];
+        let nodeId = c.current_node;
+        const seen = new Set();
+        while (nodeId && mapping[nodeId] && !seen.has(nodeId)) {
+          seen.add(nodeId);
+          orderedNodes.unshift(mapping[nodeId]);
+          nodeId = mapping[nodeId].parent;
+        }
+
+        const messages = orderedNodes.reduce((acc, node) => {
+          const msg = node?.message;
+          if (!msg) return acc;
+          const role = msg?.author?.role;
+          if (!['user', 'assistant'].includes(role)) return acc;
+          const parts = msg?.content?.parts || [];
+          const text = parts.filter(p => typeof p === 'string').join(' ').trim();
+          if (text) acc.push({ role, text });
+          return acc;
+        }, []);
+
+        const date = new Date(c.create_time * 1000);
+        const monthKey = date.toISOString().slice(0, 7);
+        const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const title = c.title || '(untitled)';
+        return {
+          title,
+          date,
+          monthKey,
+          monthLabel,
+          messages,
+          userText: messages.filter(m => m.role === 'user').map(m => m.text).join(' '),
+          fullText: messages.map(m => m.text).join(' '),
+        };
+      });
+
+    // Pass 2: build IDF, then classify using title + message content
+    buildIDF(parsed);
+    allConversations = parsed
+      .map(c => ({ ...c, topic: classifyConversation(c) }))
+      .sort((a, b) => a.date - b.date);
+
+    buildDashboard();
+  }).catch(err => {
+    alert('Error reading files: ' + err.message);
+  });
+}
+
+// ── Build dashboard ──────────────────────────────────────────────────────────
+
+function buildDashboard() {
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  const total = allConversations.length;
+  const first = allConversations[0].date;
+  const last  = allConversations[allConversations.length - 1].date;
+  const fmt = d => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+  // Stats
+  document.getElementById('stat-total').textContent = total.toLocaleString();
+  document.getElementById('stat-range').textContent = fmt(first) + ' – ' + fmt(last);
+  document.getElementById('header-range').textContent = total.toLocaleString() + ' conversations';
+
+  // Peak month
+  const monthlyCounts = {};
+  allConversations.forEach(c => {
+    monthlyCounts[c.monthLabel] = (monthlyCounts[c.monthLabel] || 0) + 1;
+  });
+  const peakLabel = Object.entries(monthlyCounts).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById('stat-peak').textContent = peakLabel[0];
+  document.getElementById('stat-peak-count').textContent = peakLabel[1] + ' conversations';
+
+  // Top topic
+  const topicCounts = {};
+  allConversations.forEach(c => {
+    topicCounts[c.topic] = (topicCounts[c.topic] || 0) + 1;
+  });
+  const topTopic = Object.entries(topicCounts).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById('stat-topic').textContent = topTopic[0];
+
+  // Build a stable topic → color map, ordered by frequency
+  topicColorMap = {};
+  Object.keys(topicCounts)
+    .sort((a, b) => topicCounts[b] - topicCounts[a])
+    .forEach((topic, i) => {
+      topicColorMap[topic] = TIMELINE_COLORS[i % TIMELINE_COLORS.length];
+    });
+
+  renderMonthlyChart(monthlyCounts);
+  renderTopicBarChart(topicCounts);
+  renderTopicGrid(topicCounts);
+  renderTimelineControls(topicCounts);
+  renderTimeline();
+}
+
+// ── Charts ───────────────────────────────────────────────────────────────────
+
+const CHART_COLORS = ['#C05F3C','#E8956D','#F5C9A0','#A0402A','#7A2E10','#D4785A','#F2B892','#8B3A26','#EAA07C','#BB5530'];
+
+// High-contrast palette reserved for the timeline
+const TIMELINE_COLORS = [
+  '#E63946', // red
+  '#2A9D8F', // teal
+  '#457B9D', // steel blue
+  '#F4A261', // orange
+  '#6A4C93', // purple
+  '#8AC926', // lime
+  '#FFBE0B', // yellow
+  '#3A86FF', // bright blue
+  '#FB5607', // vermillion
+  '#06D6A0', // mint
+  '#FF006E', // pink
+  '#8338EC', // violet
+];
+
+// Plugin: draw the topic emoji at each non-zero data point
+const emojiPointPlugin = {
+  id: 'emojiPoints',
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx;
+    ctx.save();
+    chart.data.datasets.forEach((dataset, i) => {
+      const meta = chart.getDatasetMeta(i);
+      if (meta.hidden) return;
+      // Pull the emoji (first grapheme cluster) from the label
+      const emoji = [...dataset.label][0] || '●';
+      ctx.font = '13px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      meta.data.forEach((point, j) => {
+        if ((dataset.data[j] || 0) === 0) return;
+        ctx.fillText(emoji, point.x, point.y);
+      });
+    });
+    ctx.restore();
+  }
+};
+
+function monthsSorted(monthlyCounts) {
+  return Object.keys(monthlyCounts).sort((a, b) => {
+    const ma = allConversations.find(c => c.monthLabel === a);
+    const mb = allConversations.find(c => c.monthLabel === b);
+    return (ma?.date || 0) - (mb?.date || 0);
+  });
+}
+
+function renderMonthlyChart(monthlyCounts) {
+  const labels = monthsSorted(monthlyCounts);
+  const data   = labels.map(l => monthlyCounts[l]);
+  const max    = Math.max(...data);
+
+  if (monthlyChart) monthlyChart.destroy();
+  monthlyChart = new Chart(document.getElementById('monthly-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: data.map(v => v === max ? '#C05F3C' : v >= max * 0.75 ? '#D4785A' : '#E8956D'),
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed.y + ' conversations' } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#777' } },
+        y: { grid: { color: '#EEEEEE' }, ticks: { color: '#777' }, beginAtZero: true },
+      }
+    }
+  });
+}
+
+function renderTopicBarChart(topicCounts) {
+  const sorted = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]);
+  const labels = sorted.map(([t]) => t);
+  const data   = sorted.map(([, v]) => v);
+
+  if (topicBarChart) topicBarChart.destroy();
+  topicBarChart = new Chart(document.getElementById('topic-bar-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: labels.map(l => topicColorMap[l] || '#CCC'),
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#EEEEEE' }, ticks: { color: '#777' }, beginAtZero: true },
+        y: { grid: { display: false }, ticks: { color: '#555', font: { size: 12 } } },
+      }
+    }
+  });
+}
+
+function renderTimeline() {
+  const months = [...new Set(allConversations.map(c => c.monthKey))].sort();
+  const monthLabels = months.map(m => {
+    const d = new Date(m + '-02');
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  });
+
+  const topics = activeTimelineTopics.size
+    ? [...activeTimelineTopics]
+    : Object.keys(TOPICS).slice(0, 5);
+
+  const datasets = topics.map((topic, i) => ({
+    label: topic,
+    data: months.map(m =>
+      allConversations.filter(c => c.monthKey === m && c.topic === topic).length
+    ),
+    borderColor: topicColorMap[topic] || TIMELINE_COLORS[i % TIMELINE_COLORS.length],
+    backgroundColor: (topicColorMap[topic] || TIMELINE_COLORS[i % TIMELINE_COLORS.length]) + '25',
+    borderWidth: 2.5,
+    pointRadius: 10,
+    pointBackgroundColor: 'transparent',
+    pointBorderColor: 'transparent',
+    pointHoverRadius: 14,
+    pointHoverBackgroundColor: (topicColorMap[topic] || TIMELINE_COLORS[i % TIMELINE_COLORS.length]) + '33',
+    pointHoverBorderColor: topicColorMap[topic] || TIMELINE_COLORS[i % TIMELINE_COLORS.length],
+    pointHoverBorderWidth: 2,
+    tension: 0.35,
+    fill: false,
+  }));
+
+  if (timelineChart) timelineChart.destroy();
+  timelineChart = new Chart(document.getElementById('timeline-chart'), {
+    type: 'line',
+    data: { labels: monthLabels, datasets },
+    plugins: [emojiPointPlugin],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 16,
+            color: '#555',
+            usePointStyle: true,
+            pointStyle: 'line',
+            generateLabels(chart) {
+              return chart.data.datasets.map((ds, i) => {
+                const color = topicColorMap[ds.label] || ds.borderColor;
+                return {
+                  text: ds.label,
+                  fillStyle: color,
+                  strokeStyle: color,
+                  lineWidth: 3,
+                  hidden: chart.getDatasetMeta(i).hidden,
+                  datasetIndex: i,
+                };
+              });
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#777' } },
+        y: { grid: { color: '#EEEEEE' }, ticks: { color: '#777' }, beginAtZero: true },
+      }
+    }
+  });
+}
+
+// ── Topic grid & browser ─────────────────────────────────────────────────────
+
+function renderTopicGrid(topicCounts) {
+  const sorted = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]);
+  const grid = document.getElementById('topic-grid');
+  grid.innerHTML = '';
+  for (const [topic, count] of sorted) {
+    const chip = document.createElement('div');
+    chip.className = 'topic-chip';
+    const name = document.createElement('div');
+    name.className = 't-name';
+    name.textContent = topic;
+    const cnt = document.createElement('div');
+    cnt.className = 't-count';
+    cnt.textContent = count + ' conversations';
+    chip.appendChild(name);
+    chip.appendChild(cnt);
+    chip.addEventListener('click', () => showTopicConversations(topic));
+    grid.appendChild(chip);
+  }
+}
+
+function showTopicConversations(topic) {
+  const convos = allConversations.filter(c => c.topic === topic)
+    .sort((a, b) => b.date - a.date);
+
+  document.getElementById('topic-grid-card').style.display = 'none';
+  document.getElementById('convo-list-card').style.display = 'block';
+
+  const title = document.getElementById('convo-list-title');
+  title.textContent = topic + ' · ' + convos.length + ' conversations';
+
+  const list = document.getElementById('convo-list');
+  list.innerHTML = '';
+  for (const c of convos) {
+    const item = document.createElement('div');
+    item.className = 'convo-item';
+    const t = document.createElement('span');
+    t.className = 'convo-title';
+    t.textContent = c.title;
+    const d = document.createElement('span');
+    d.className = 'convo-date';
+    d.textContent = c.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    item.appendChild(t);
+    item.appendChild(d);
+    item.addEventListener('click', () => openConversation(c));
+    list.appendChild(item);
+  }
+}
+
+document.getElementById('convo-back').addEventListener('click', () => {
+  document.getElementById('convo-list-card').style.display = 'none';
+  document.getElementById('topic-grid-card').style.display = 'block';
+});
+
+// ── Conversation drawer ───────────────────────────────────────────────────────
+
+function openConversation(convo) {
+  const overlay = document.getElementById('drawer-overlay');
+  const titleEl = document.getElementById('drawer-title');
+  const metaEl  = document.getElementById('drawer-meta');
+  const msgsEl  = document.getElementById('drawer-messages');
+
+  titleEl.textContent = convo.title;
+  metaEl.textContent  = convo.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+                      + ' · ' + convo.topic;
+
+  msgsEl.innerHTML = '';
+
+  if (!convo.messages.length) {
+    const empty = document.createElement('p');
+    empty.style.cssText = 'color:var(--muted);font-size:.9rem;text-align:center;padding:2rem 0';
+    empty.textContent = 'No messages found in this conversation.';
+    msgsEl.appendChild(empty);
+  } else {
+    for (const msg of convo.messages) {
+      if (!['user', 'assistant'].includes(msg.role)) continue;
+      const wrap = document.createElement('div');
+      wrap.className = 'msg ' + msg.role;
+
+      const roleLabel = document.createElement('div');
+      roleLabel.className = 'msg-role';
+      roleLabel.textContent = msg.role === 'user' ? 'You' : 'ChatGPT';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      bubble.textContent = msg.text;   // textContent — safe, no XSS
+
+      wrap.appendChild(roleLabel);
+      wrap.appendChild(bubble);
+      msgsEl.appendChild(wrap);
+    }
+  }
+
+  overlay.classList.add('open');
+  msgsEl.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+document.getElementById('drawer-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('drawer-overlay')) closeDrawer();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+// ── Search ───────────────────────────────────────────────────────────────────
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlight(text, query) {
+  const safe = document.createElement('span');
+  const re = new RegExp('(' + escapeRegex(query) + ')', 'gi');
+  const parts = text.split(re);
+  for (const part of parts) {
+    if (part.toLowerCase() === query.toLowerCase()) {
+      const mark = document.createElement('mark');
+      mark.className = 'highlight';
+      mark.textContent = part;
+      safe.appendChild(mark);
+    } else {
+      safe.appendChild(document.createTextNode(part));
+    }
+  }
+  return safe;
+}
+
+function getSnippet(text, query, radius = 120) {
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return null;
+  const start = Math.max(0, idx - radius);
+  const end   = Math.min(text.length, idx + query.length + radius);
+  return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+}
+
+let searchDebounce;
+document.getElementById('search-input').addEventListener('input', function () {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => runSearch(this.value.trim()), 200);
+});
+
+function runSearch(query) {
+  const count = document.getElementById('search-count');
+  const results = document.getElementById('search-results');
+  results.innerHTML = '';
+
+  if (!query) { count.textContent = ''; return; }
+
+  const matches = allConversations.filter(c =>
+    c.title.toLowerCase().includes(query.toLowerCase()) ||
+    c.fullText.toLowerCase().includes(query.toLowerCase())
+  ).sort((a, b) => b.date - a.date);
+
+  count.textContent = matches.length + ' result' + (matches.length !== 1 ? 's' : '') + ' for "' + query + '"';
+
+  for (const c of matches.slice(0, 50)) {
+    const item = document.createElement('div');
+    item.className = 'result-item';
+
+    const rtitle = document.createElement('div');
+    rtitle.className = 'r-title';
+    rtitle.appendChild(highlight(c.title, query));
+
+    const rmeta = document.createElement('div');
+    rmeta.className = 'r-meta';
+    rmeta.textContent = c.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) + ' · ' + c.topic;
+
+    item.appendChild(rtitle);
+    item.appendChild(rmeta);
+
+    const snippet = getSnippet(c.userText || c.fullText, query);
+    if (snippet) {
+      const rsnip = document.createElement('div');
+      rsnip.className = 'r-snippet';
+      rsnip.appendChild(highlight(snippet, query));
+      item.appendChild(rsnip);
+    }
+
+    item.addEventListener('click', () => openConversation(c));
+    results.appendChild(item);
+  }
+
+  if (matches.length > 50) {
+    const more = document.createElement('p');
+    more.style.cssText = 'text-align:center;color:var(--muted);font-size:.85rem;padding:1rem';
+    more.textContent = 'Showing first 50 of ' + matches.length + ' results. Refine your search to see more.';
+    results.appendChild(more);
+  }
+}
+
+// ── Timeline controls ────────────────────────────────────────────────────────
+
+function renderTimelineControls(topicCounts) {
+  const sorted = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]);
+  const controls = document.getElementById('timeline-controls');
+  controls.innerHTML = '';
+
+  // Default: top 5 active
+  const top5 = sorted.slice(0, 5).map(([t]) => t);
+  top5.forEach(t => activeTimelineTopics.add(t));
+
+  for (const [topic] of sorted) {
+    const chip = document.createElement('button');
+    chip.className = 'tl-chip' + (activeTimelineTopics.has(topic) ? ' active' : '');
+    chip.textContent = topic;
+    chip.addEventListener('click', () => {
+      if (activeTimelineTopics.has(topic)) {
+        activeTimelineTopics.delete(topic);
+        chip.classList.remove('active');
+      } else {
+        activeTimelineTopics.add(topic);
+        chip.classList.add('active');
+      }
+      renderTimeline();
+    });
+    controls.appendChild(chip);
+  }
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── File upload ──────────────────────────────────────────────────────────────
+
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+document.getElementById('browse-link').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { if (fileInput.files.length) parseFiles(fileInput.files); });
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) parseFiles(e.dataTransfer.files);
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  allConversations = [];
+  activeTimelineTopics.clear();
+  [monthlyChart, topicBarChart, timelineChart].forEach(c => c && c.destroy());
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'flex';
+  fileInput.value = '';
+  document.getElementById('search-input').value = '';
+});
+</script>
+</body>
+</html>
