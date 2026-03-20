@@ -1,0 +1,15 @@
+# ChatGPT export data — never commit conversation data
+*.json
+*.zip
+
+# Test/analysis artifacts
+*.png
+*.csv
+*.py
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

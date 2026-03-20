@@ -23,9 +23,7 @@ A browser-based tool for exploring your ChatGPT conversation history. Upload you
 
 In ChatGPT: **Settings → Data Controls → Export Data**
 
-You'll receive an email with a `.zip` file. Extract it — you're looking for either:
-- A single `conversations.json` file, or
-- Multiple numbered files: `conversations-000.json`, `conversations-001.json`, etc.
+You'll receive an email with a `.zip` file.
 
 ### 2. Open the app
 
@@ -35,7 +33,9 @@ Or visit the hosted version at: https://alyssafuward.github.io/chatgpt-explorer/
 
 ### 3. Upload your files
 
-Drag and drop your JSON file(s) onto the upload area, or click to browse. Multiple files are supported. The app will process everything and display your dashboard immediately.
+Drag and drop your `.zip` export directly onto the upload area — no extraction needed. The app will find and process all `conversations.json` files inside automatically.
+
+You can also upload extracted JSON files individually: either a single `conversations.json` or multiple numbered files (`conversations-000.json`, `conversations-001.json`, etc.). Multiple files are supported.
 
 ---
 
@@ -69,7 +69,7 @@ A security review was conducted on this codebase. Here is the full assessment.
 
 ### Architecture
 
-This is a **purely client-side application**. It loads one external script (Chart.js), reads local files via the browser's File API, and performs all analysis in memory. It makes zero network requests after the initial page load. There is no backend, no database, no authentication layer, and no analytics.
+This is a **purely client-side application**. It loads one external script (Chart.js) and bundles JSZip v3.10.1 inline for zip extraction. It reads local files via the browser's File API and performs all analysis in memory. It makes zero network requests after the initial page load. There is no backend, no database, no authentication layer, and no analytics.
 
 ### Findings
 
@@ -107,7 +107,7 @@ If the CDN ever serves a tampered version of the file, the browser will refuse t
 
 #### ✅ File size limit
 
-File uploads are capped at 100 MB per file. This prevents a malformed or oversized JSON from freezing the browser tab. The check happens before the file is read, with a clear error message to the user.
+File uploads are capped at 2 GB per file. This prevents a malformed or oversized file from freezing the browser tab. The check happens before the file is read, with a clear error message to the user.
 
 #### ⚠️ No Content Security Policy (CSP)
 
@@ -130,7 +130,7 @@ The app performs basic structural checks on uploaded JSON (`c && c.create_time`)
 | User uploads malicious JSON that executes code | Very low | High | ✅ Yes — `textContent` throughout, no `eval()` |
 | CDN serves tampered Chart.js | Very low | High | ✅ Yes — SRI hash enforced |
 | User data sent to third party | None | High | ✅ Yes — no network requests |
-| Browser tab frozen by huge file | Low | Low | ✅ Yes — 100 MB limit |
+| Browser tab frozen by huge file | Low | Low | ✅ Yes — 2 GB limit |
 | XSS via search input | Very low | Medium | ✅ Yes — regex-escaped, `textContent` used |
 | Circular JSON causes infinite loop | Very low | Low | ✅ Yes — `Set`-based traversal guard |
 
