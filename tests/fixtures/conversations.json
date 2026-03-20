@@ -1,0 +1,152 @@
+[
+  {
+    "title": "Help writing a Python script",
+    "create_time": 1700000000,
+    "mapping": {
+      "node-1": {
+        "id": "node-1",
+        "parent": null,
+        "children": ["node-2"],
+        "message": null
+      },
+      "node-2": {
+        "id": "node-2",
+        "parent": "node-1",
+        "children": ["node-3"],
+        "message": {
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["Can you help me write a Python script to parse CSV files?"] }
+        }
+      },
+      "node-3": {
+        "id": "node-3",
+        "parent": "node-2",
+        "children": [],
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Sure! Here's a Python script that reads a CSV file using the csv module."] }
+        }
+      }
+    }
+  },
+  {
+    "title": "Blog post ideas for my newsletter",
+    "create_time": 1701000000,
+    "mapping": {
+      "node-1": {
+        "id": "node-1",
+        "parent": null,
+        "children": ["node-2"],
+        "message": null
+      },
+      "node-2": {
+        "id": "node-2",
+        "parent": "node-1",
+        "children": ["node-3"],
+        "message": {
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["Give me 5 blog post ideas for a newsletter about productivity."] }
+        }
+      },
+      "node-3": {
+        "id": "node-3",
+        "parent": "node-2",
+        "children": [],
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Here are 5 blog post ideas: 1. Morning routines of top performers..."] }
+        }
+      }
+    }
+  },
+  {
+    "title": "Explain machine learning to a beginner",
+    "create_time": 1702000000,
+    "mapping": {
+      "node-1": {
+        "id": "node-1",
+        "parent": null,
+        "children": ["node-2"],
+        "message": null
+      },
+      "node-2": {
+        "id": "node-2",
+        "parent": "node-1",
+        "children": ["node-3"],
+        "message": {
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["Can you explain machine learning in simple terms?"] }
+        }
+      },
+      "node-3": {
+        "id": "node-3",
+        "parent": "node-2",
+        "children": [],
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Machine learning is a way for computers to learn from examples without being explicitly programmed."] }
+        }
+      }
+    }
+  },
+  {
+    "title": "Recipe for chocolate chip cookies",
+    "create_time": 1703000000,
+    "mapping": {
+      "node-1": {
+        "id": "node-1",
+        "parent": null,
+        "children": ["node-2"],
+        "message": null
+      },
+      "node-2": {
+        "id": "node-2",
+        "parent": "node-1",
+        "children": ["node-3"],
+        "message": {
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["What's a good recipe for chocolate chip cookies?"] }
+        }
+      },
+      "node-3": {
+        "id": "node-3",
+        "parent": "node-2",
+        "children": [],
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Here's a classic chocolate chip cookie recipe: 2 cups flour, 1 cup butter..."] }
+        }
+      }
+    }
+  },
+  {
+    "title": "How to negotiate a salary raise",
+    "create_time": 1704000000,
+    "mapping": {
+      "node-1": {
+        "id": "node-1",
+        "parent": null,
+        "children": ["node-2"],
+        "message": null
+      },
+      "node-2": {
+        "id": "node-2",
+        "parent": "node-1",
+        "children": ["node-3"],
+        "message": {
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["What's the best way to negotiate a salary raise with my manager?"] }
+        }
+      },
+      "node-3": {
+        "id": "node-3",
+        "parent": "node-2",
+        "children": [],
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Start by researching market rates for your role. Then schedule a dedicated meeting with your manager..."] }
+        }
+      }
+    }
+  }
+]

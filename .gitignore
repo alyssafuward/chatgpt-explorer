@@ -2,10 +2,23 @@
 *.json
 *.zip
 
+# Allow project config files
+!package.json
+!package-lock.json
+!playwright.config.js
+!tests/fixtures/*.json
+
 # Test/analysis artifacts
 *.png
 *.csv
 *.py
+
+# Node
+node_modules/
+
+# Playwright
+test-results/
+playwright-report/
 
 # macOS
 .DS_Store
